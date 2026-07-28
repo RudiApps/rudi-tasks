@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'task_form_sheet.dart';
 import '../../models/task.dart';
 import '../../widgets/task_card.dart';
 
@@ -74,6 +75,26 @@ class _TasksScreenState extends State<TasksScreen> {
       );
     });
   }
+
+Future<void> _addTask() async {
+  final task = await showModalBottomSheet<Task>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: false,
+    builder: (context) {
+      return const TaskFormSheet();
+    },
+  );
+
+  if (task == null) {
+    return;
+  }
+
+  setState(() {
+    _tasks.insert(0, task);
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -217,9 +238,9 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add_rounded),
-      ),
+  onPressed: _addTask,
+  child: const Icon(Icons.add_rounded),
+),
     );
   }
 }
