@@ -5,6 +5,7 @@ import '../../services/task_storage_service.dart';
 import '../../services/theme_controller.dart';
 import '../../services/theme_storage_service.dart';
 import '../../widgets/task_card.dart';
+import '../../widgets/tasks_empty_state.dart';
 import 'task_form_sheet.dart';
 
 enum TaskFilter {
@@ -428,6 +429,42 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
+  Widget _buildEmptyState() {
+  if (_searchQuery.trim().isNotEmpty) {
+    return const TasksEmptyState(
+      icon: Icons.search_off_rounded,
+      title: 'Ничего не найдено',
+      description:
+          'Попробуй изменить запрос или проверить другие фильтры.',
+    );
+  }
+
+  if (_selectedFilter == TaskFilter.completed) {
+    return const TasksEmptyState(
+      icon: Icons.task_alt_rounded,
+      title: 'Пока ничего не выполнено',
+      description:
+          'Заверши первую задачу — и она появится здесь.',
+    );
+  }
+
+  if (_selectedFilter == TaskFilter.active) {
+    return const TasksEmptyState(
+      icon: Icons.celebration_rounded,
+      title: 'Активных задач нет',
+      description:
+          'Отличная работа. На данный момент всё выполнено.',
+    );
+  }
+
+  return const TasksEmptyState(
+    icon: Icons.checklist_rounded,
+    title: 'Задач пока нет',
+    description:
+        'Нажми +, чтобы создать свою первую задачу.',
+  );
+}
+  
   @override
   Widget build(BuildContext context) {
     final completedCount =
@@ -662,26 +699,7 @@ class _TasksScreenState extends State<TasksScreen> {
                         child: CircularProgressIndicator(),
                       )
                     : filteredTasks.isEmpty
-                        ? Center(
-                            child: Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'Ничего не найдено'
-                                  : _selectedFilter ==
-                                          TaskFilter.completed
-                                      ? 'Пока нет выполненных задач'
-                                      : 'Здесь пока нет задач',
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.55),
-                                  ),
-                            ),
-                          )
+    ? _buildEmptyState()
                         : ListView.builder(
                             itemCount: filteredTasks.length,
                             itemBuilder: (context, index) {
