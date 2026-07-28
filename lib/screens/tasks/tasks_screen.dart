@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import '../../models/task.dart';
 import '../../widgets/task_card.dart';
 
+enum TaskFilter {
+  all,
+  active,
+  completed,
+}
+
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
 
@@ -11,6 +17,8 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
+  TaskFilter _selectedFilter = TaskFilter.all;
+
   final List<Task> _tasks = [
     const Task(
       id: '1',
@@ -32,7 +40,32 @@ class _TasksScreenState extends State<TasksScreen> {
     ),
   ];
 
-  void _toggleTask(int index) {
+  List<Task> get _filteredTasks {
+    switch (_selectedFilter) {
+      case TaskFilter.all:
+        return _tasks;
+
+      case TaskFilter.active:
+        return _tasks
+            .where((task) => !task.isCompleted)
+            .toList();
+
+      case TaskFilter.completed:
+        return _tasks
+            .where((task) => task.isCompleted)
+            .toList();
+    }
+  }
+
+  void _toggleTask(String taskId) {
+    final index = _tasks.indexWhere(
+      (task) => task.id == taskId,
+    );
+
+    if (index == -1) {
+      return;
+    }
+
     setState(() {
       final task = _tasks[index];
 
@@ -46,6 +79,8 @@ class _TasksScreenState extends State<TasksScreen> {
   Widget build(BuildContext context) {
     final completedCount =
         _tasks.where((task) => task.isCompleted).length;
+
+    final filteredTasks = _filteredTasks;
 
     return Scaffold(
       body: SafeArea(
@@ -102,7 +137,42 @@ class _TasksScreenState extends State<TasksScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
+
+              Wrap(
+                spacing: 8,
+                children: [
+                  FilterChip(
+                    label: const Text('Все'),
+                    selected: _selectedFilter == TaskFilter.all,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedFilter = TaskFilter.all;
+                      });
+                    },
+                  ),
+                  FilterChip(
+                    label: const Text('Активные'),
+                    selected: _selectedFilter == TaskFilter.active,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedFilter = TaskFilter.active;
+                      });
+                    },
+                  ),
+                  FilterChip(
+                    label: const Text('Выполненные'),
+                    selected: _selectedFilter == TaskFilter.completed,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedFilter = TaskFilter.completed;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 22),
 
               Text(
                 'Мои задачи',
@@ -114,15 +184,33 @@ class _TasksScreenState extends State<TasksScreen> {
               const SizedBox(height: 14),
 
               Expanded(
-                child: ListView.builder(
-                  itemCount: _tasks.length,
-                  itemBuilder: (context, index) {
-                    return TaskCard(
-                      task: _tasks[index],
-                      onToggle: () => _toggleTask(index),
-                    );
-                  },
-                ),
+                child: filteredTasks.isEmpty
+                    ? Center(
+                        child: Text(
+                          _selectedFilter == TaskFilter.completed
+                              ? 'Пока нет выполненных задач'
+                              : 'Здесь пока нет задач',
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.55),
+                                  ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: filteredTasks.length,
+                        itemBuilder: (context, index) {
+                          final task = filteredTasks[index];
+
+                          return TaskCard(
+                            task: task,
+                            onToggle: () => _toggleTask(task.id),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
