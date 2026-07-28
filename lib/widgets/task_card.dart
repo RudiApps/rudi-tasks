@@ -8,10 +8,14 @@ class TaskCard extends StatelessWidget {
     super.key,
     required this.task,
     required this.onToggle,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final Task task;
   final VoidCallback onToggle;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   Color _priorityColor() {
     switch (task.priority) {
@@ -43,7 +47,9 @@ class TaskCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? RudiTheme.darkSurface : RudiTheme.lightSurface,
+        color: isDark
+            ? RudiTheme.darkSurface
+            : RudiTheme.lightSurface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context)
@@ -55,6 +61,7 @@ class TaskCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Кнопка "выполнено"
           InkWell(
             onTap: onToggle,
             borderRadius: BorderRadius.circular(100),
@@ -83,40 +90,56 @@ class TaskCard extends StatelessWidget {
                   : null,
             ),
           ),
+
           const SizedBox(width: 14),
+
+          // Текст задачи
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   task.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(
                         fontWeight: FontWeight.w700,
                         decoration: task.isCompleted
                             ? TextDecoration.lineThrough
                             : null,
                       ),
                 ),
+
                 if (task.description.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
                     task.description,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
                               .withValues(alpha: 0.6),
+                          decoration: task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                   ),
                 ],
+
                 const SizedBox(height: 12),
+
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: _priorityColor().withValues(alpha: 0.12),
+                    color: _priorityColor()
+                        .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
@@ -130,6 +153,42 @@ class TaskCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+
+          // Меню редактирования / удаления
+          PopupMenuButton<String>(
+            tooltip: 'Действия',
+            onSelected: (value) {
+              if (value == 'edit') {
+                onEdit();
+              }
+
+              if (value == 'delete') {
+                onDelete();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_rounded),
+                    SizedBox(width: 10),
+                    Text('Изменить'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline_rounded),
+                    SizedBox(width: 10),
+                    Text('Удалить'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

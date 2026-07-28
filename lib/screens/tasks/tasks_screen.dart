@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'task_form_sheet.dart';
 import '../../models/task.dart';
 import '../../widgets/task_card.dart';
+import 'task_form_sheet.dart';
 
 enum TaskFilter {
   all,
@@ -76,25 +76,92 @@ class _TasksScreenState extends State<TasksScreen> {
     });
   }
 
-Future<void> _addTask() async {
-  final task = await showModalBottomSheet<Task>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: false,
-    builder: (context) {
-      return const TaskFormSheet();
-    },
-  );
+  Future<void> _addTask() async {
+    final task = await showModalBottomSheet<Task>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: false,
+      builder: (context) {
+        return const TaskFormSheet();
+      },
+    );
 
-  if (task == null) {
-    return;
+    if (task == null) {
+      return;
+    }
+
+    setState(() {
+      _tasks.insert(0, task);
+    });
   }
 
-  setState(() {
-    _tasks.insert(0, task);
-  });
-}
+  Future<void> _editTask(Task task) async {
+    final updatedTask = await showModalBottomSheet<Task>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) {
+        return TaskFormSheet(
+          initialTask: task,
+        );
+      },
+    );
+
+    if (updatedTask == null) {
+      return;
+    }
+
+    final index = _tasks.indexWhere(
+      (item) => item.id == task.id,
+    );
+
+    if (index == -1) {
+      return;
+    }
+
+    setState(() {
+      _tasks[index] = updatedTask;
+    });
+  }
+
+  Future<void> _deleteTask(Task task) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Удалить задачу?'),
+          content: Text(
+            '«${task.title}» будет удалена.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Удалить'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    setState(() {
+      _tasks.removeWhere(
+        (item) => item.id == task.id,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +296,8 @@ Future<void> _addTask() async {
                           return TaskCard(
                             task: task,
                             onToggle: () => _toggleTask(task.id),
+                            onEdit: () => _editTask(task),
+                            onDelete: () => _deleteTask(task),
                           );
                         },
                       ),
@@ -238,9 +307,9 @@ Future<void> _addTask() async {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-  onPressed: _addTask,
-  child: const Icon(Icons.add_rounded),
-),
+        onPressed: _addTask,
+        child: const Icon(Icons.add_rounded),
+      ),
     );
   }
 }

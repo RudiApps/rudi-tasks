@@ -3,17 +3,39 @@ import 'package:flutter/material.dart';
 import '../../models/task.dart';
 
 class TaskFormSheet extends StatefulWidget {
-  const TaskFormSheet({super.key});
+  const TaskFormSheet({
+    super.key,
+    this.initialTask,
+  });
+
+  final Task? initialTask;
 
   @override
   State<TaskFormSheet> createState() => _TaskFormSheetState();
 }
 
 class _TaskFormSheetState extends State<TaskFormSheet> {
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
 
-  TaskPriority _priority = TaskPriority.medium;
+  late TaskPriority _priority;
+
+  bool get _isEditing => widget.initialTask != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _titleController = TextEditingController(
+      text: widget.initialTask?.title ?? '',
+    );
+
+    _descriptionController = TextEditingController(
+      text: widget.initialTask?.description ?? '',
+    );
+
+    _priority = widget.initialTask?.priority ?? TaskPriority.medium;
+  }
 
   @override
   void dispose() {
@@ -35,12 +57,16 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
       return;
     }
 
+    final oldTask = widget.initialTask;
+
     final task = Task(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: oldTask?.id ??
+          DateTime.now().microsecondsSinceEpoch.toString(),
       title: title,
       description: description,
+      isCompleted: oldTask?.isCompleted ?? false,
       priority: _priority,
-      createdAt: DateTime.now(),
+      createdAt: oldTask?.createdAt ?? DateTime.now(),
     );
 
     Navigator.of(context).pop(task);
@@ -76,30 +102,23 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                 ),
               ),
             ),
-
             const SizedBox(height: 22),
-
             Text(
-              'Новая задача',
+              _isEditing ? 'Изменить задачу' : 'Новая задача',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
             ),
-
             const SizedBox(height: 20),
-
             TextField(
               controller: _titleController,
-              autofocus: true,
+              autofocus: !_isEditing,
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'Название',
-                hintText: 'Например: закончить Rudi Tasks',
               ),
             ),
-
             const SizedBox(height: 14),
-
             TextField(
               controller: _descriptionController,
               maxLines: 3,
@@ -108,18 +127,14 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                 hintText: 'Необязательно',
               ),
             ),
-
             const SizedBox(height: 20),
-
             Text(
               'Приоритет',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
             ),
-
             const SizedBox(height: 10),
-
             Wrap(
               spacing: 8,
               children: [
@@ -152,17 +167,23 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                 ),
               ],
             ),
-
             const SizedBox(height: 26),
-
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: _saveTask,
-                icon: const Icon(Icons.add_task_rounded),
-                label: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: Text('Добавить задачу'),
+                icon: Icon(
+                  _isEditing
+                      ? Icons.save_rounded
+                      : Icons.add_task_rounded,
+                ),
+                label: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Text(
+                    _isEditing
+                        ? 'Сохранить изменения'
+                        : 'Добавить задачу',
+                  ),
                 ),
               ),
             ),
