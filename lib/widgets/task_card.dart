@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../models/task.dart';
-import '../theme/rudi_theme.dart';
 
 class TaskCard extends StatelessWidget {
   const TaskCard({
@@ -20,11 +19,13 @@ class TaskCard extends StatelessWidget {
   Color _priorityColor() {
     switch (task.priority) {
       case TaskPriority.low:
-        return Colors.green;
+        return const Color(0xFF51C878);
+
       case TaskPriority.medium:
-        return Colors.orange;
+        return const Color(0xFFFFA62B);
+
       case TaskPriority.high:
-        return Colors.redAccent;
+        return const Color(0xFFFF5C6C);
     }
   }
 
@@ -32,8 +33,10 @@ class TaskCard extends StatelessWidget {
     switch (task.priority) {
       case TaskPriority.low:
         return 'Низкий';
+
       case TaskPriority.medium:
         return 'Средний';
+
       case TaskPriority.high:
         return 'Высокий';
     }
@@ -41,51 +44,62 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? RudiTheme.darkSurface
-            : RudiTheme.lightSurface,
+        // ВАЖНО:
+        // больше никаких RudiTheme.darkSurface.
+        // Карточка берёт цвет из текущей активной темы.
+        color: colors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.35),
+          color: colors.outlineVariant.withValues(
+            alpha: 0.65,
+          ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow.withValues(
+              alpha: 0.05,
+            ),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Кнопка "выполнено"
           InkWell(
             onTap: onToggle,
             borderRadius: BorderRadius.circular(100),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: const Duration(
+                milliseconds: 180,
+              ),
               width: 26,
               height: 26,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: task.isCompleted
-                    ? RudiTheme.primary
+                    ? colors.primary
                     : Colors.transparent,
                 border: Border.all(
                   color: task.isCompleted
-                      ? RudiTheme.primary
-                      : Theme.of(context).colorScheme.outline,
+                      ? colors.primary
+                      : colors.outline,
                   width: 2,
                 ),
               ),
               child: task.isCompleted
-                  ? const Icon(
+                  ? Icon(
                       Icons.check_rounded,
                       size: 18,
-                      color: Colors.white,
+                      color: colors.onPrimary,
                     )
                   : null,
             ),
@@ -93,40 +107,40 @@ class TaskCard extends StatelessWidget {
 
           const SizedBox(width: 14),
 
-          // Текст задачи
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   task.title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        decoration: task.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    decoration: task.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: task.isCompleted
+                        ? colors.onSurface.withValues(
+                            alpha: 0.55,
+                          )
+                        : colors.onSurface,
+                  ),
                 ),
 
                 if (task.description.isNotEmpty) ...[
                   const SizedBox(height: 6),
+
                   Text(
                     task.description,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                          decoration: task.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurface.withValues(
+                        alpha: task.isCompleted
+                            ? 0.4
+                            : 0.6,
+                      ),
+                      decoration: task.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
                   ),
                 ],
 
@@ -138,8 +152,9 @@ class TaskCard extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: _priorityColor()
-                        .withValues(alpha: 0.12),
+                    color: _priorityColor().withValues(
+                      alpha: 0.14,
+                    ),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
@@ -155,9 +170,11 @@ class TaskCard extends StatelessWidget {
             ),
           ),
 
-          // Меню редактирования / удаления
           PopupMenuButton<String>(
             tooltip: 'Действия',
+            iconColor: colors.onSurface.withValues(
+              alpha: 0.75,
+            ),
             onSelected: (value) {
               if (value == 'edit') {
                 onEdit();
