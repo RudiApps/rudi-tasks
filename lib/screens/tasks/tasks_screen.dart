@@ -27,10 +27,12 @@ class TasksScreen extends StatefulWidget {
 
 class _TasksScreenState extends State<TasksScreen> {
   final TaskStorageService _storageService = TaskStorageService();
+  final TextEditingController _searchController = TextEditingController();
 
   TaskFilter _selectedFilter = TaskFilter.all;
 
   bool _isLoading = true;
+  String _searchQuery = '';
 
   List<Task> _tasks = [];
 
@@ -59,6 +61,12 @@ class _TasksScreenState extends State<TasksScreen> {
   void initState() {
     super.initState();
     _loadTasks();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTasks() async {
@@ -92,16 +100,38 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   List<Task> get _filteredTasks {
+    Iterable<Task> result = _tasks;
+
     switch (_selectedFilter) {
       case TaskFilter.all:
-        return _tasks;
+        break;
 
       case TaskFilter.active:
-        return _tasks.where((task) => !task.isCompleted).toList();
+        result = result.where(
+          (task) => !task.isCompleted,
+        );
+        break;
 
       case TaskFilter.completed:
-        return _tasks.where((task) => task.isCompleted).toList();
+        result = result.where(
+          (task) => task.isCompleted,
+        );
+        break;
     }
+
+    final query = _searchQuery.trim().toLowerCase();
+
+    if (query.isNotEmpty) {
+      result = result.where((task) {
+        final title = task.title.toLowerCase();
+        final description = task.description.toLowerCase();
+
+        return title.contains(query) ||
+            description.contains(query);
+      });
+    }
+
+    return result.toList();
   }
 
   Future<void> _toggleTask(String taskId) async {
@@ -218,6 +248,14 @@ class _TasksScreenState extends State<TasksScreen> {
     await _saveTasks();
   }
 
+  void _clearSearch() {
+    _searchController.clear();
+
+    setState(() {
+      _searchQuery = '';
+    });
+  }
+
   Widget _themeCheck(AppThemeChoice choice) {
     if (widget.themeController.selectedTheme == choice) {
       return const Icon(
@@ -233,66 +271,66 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   Widget _buildProgressCard(
-  BuildContext context,
-  int completedCount,
-) {
-  final isRudi =
-      widget.themeController.selectedTheme == AppThemeChoice.rudi;
+    BuildContext context,
+    int completedCount,
+  ) {
+    final isRudi =
+        widget.themeController.selectedTheme == AppThemeChoice.rudi;
 
-  final colors = Theme.of(context).colorScheme;
+    final colors = Theme.of(context).colorScheme;
 
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: isRudi ? null : colors.primaryContainer,
-      gradient: isRudi
-          ? const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF7C5CFF),
-                Color(0xFF3F8CFF),
-              ],
-            )
-          : null,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: isRudi
-          ? [
-              BoxShadow(
-                color: const Color(0xFF6C4DFF)
-                    .withValues(alpha: 0.28),
-                blurRadius: 22,
-                offset: const Offset(0, 8),
-              ),
-            ]
-          : null,
-    ),
-    child: Row(
-      children: [
-        Icon(
-          Icons.task_alt_rounded,
-          color: isRudi
-              ? Colors.white
-              : colors.onPrimaryContainer,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            'Выполнено $completedCount из ${_tasks.length}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: isRudi
-                      ? Colors.white
-                      : colors.onPrimaryContainer,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isRudi ? null : colors.primaryContainer,
+        gradient: isRudi
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF7C5CFF),
+                  Color(0xFF3F8CFF),
+                ],
+              )
+            : null,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: isRudi
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF6C4DFF)
+                      .withValues(alpha: 0.28),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
                 ),
+              ]
+            : null,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.task_alt_rounded,
+            color: isRudi
+                ? Colors.white
+                : colors.onPrimaryContainer,
           ),
-        ),
-      ],
-    ),
-  );
-}
-  
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Выполнено $completedCount из ${_tasks.length}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: isRudi
+                        ? Colors.white
+                        : colors.onPrimaryContainer,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final completedCount =
@@ -326,18 +364,19 @@ class _TasksScreenState extends State<TasksScreen> {
                         const SizedBox(height: 6),
                         Text(
                           'Держи задачи под контролем',
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
+                              ),
                         ),
                       ],
                     ),
                   ),
-
                   PopupMenuButton<AppThemeChoice>(
                     tooltip: 'Тема',
                     icon: const Icon(
@@ -396,11 +435,37 @@ class _TasksScreenState extends State<TasksScreen> {
               const SizedBox(height: 24),
 
               _buildProgressCard(
-  context,
-  completedCount,
-),
+                context,
+                completedCount,
+              ),
 
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
+
+              TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Поиск задач',
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                  ),
+                  suffixIcon: _searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Очистить поиск',
+                          onPressed: _clearSearch,
+                          icon: const Icon(
+                            Icons.close_rounded,
+                          ),
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
 
               Wrap(
                 spacing: 8,
@@ -425,7 +490,8 @@ class _TasksScreenState extends State<TasksScreen> {
                   ),
                   FilterChip(
                     label: const Text('Выполненные'),
-                    selected: _selectedFilter == TaskFilter.completed,
+                    selected:
+                        _selectedFilter == TaskFilter.completed,
                     onSelected: (_) {
                       setState(() {
                         _selectedFilter = TaskFilter.completed;
@@ -435,7 +501,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 ],
               ),
 
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
 
               Text(
                 'Мои задачи',
@@ -454,9 +520,12 @@ class _TasksScreenState extends State<TasksScreen> {
                     : filteredTasks.isEmpty
                         ? Center(
                             child: Text(
-                              _selectedFilter == TaskFilter.completed
-                                  ? 'Пока нет выполненных задач'
-                                  : 'Здесь пока нет задач',
+                              _searchQuery.isNotEmpty
+                                  ? 'Ничего не найдено'
+                                  : _selectedFilter ==
+                                          TaskFilter.completed
+                                      ? 'Пока нет выполненных задач'
+                                      : 'Здесь пока нет задач',
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
