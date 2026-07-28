@@ -13,6 +13,13 @@ enum TaskFilter {
   completed,
 }
 
+enum TaskSort {
+  newest,
+  oldest,
+  highPriority,
+  lowPriority,
+}
+
 class TasksScreen extends StatefulWidget {
   const TasksScreen({
     super.key,
@@ -30,6 +37,7 @@ class _TasksScreenState extends State<TasksScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   TaskFilter _selectedFilter = TaskFilter.all;
+  TaskSort _selectedSort = TaskSort.newest;
 
   bool _isLoading = true;
   String _searchQuery = '';
@@ -99,6 +107,17 @@ class _TasksScreenState extends State<TasksScreen> {
     await _storageService.saveTasks(_tasks);
   }
 
+  int _priorityWeight(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.low:
+        return 1;
+      case TaskPriority.medium:
+        return 2;
+      case TaskPriority.high:
+        return 3;
+    }
+  }
+
   List<Task> get _filteredTasks {
     Iterable<Task> result = _tasks;
 
@@ -131,7 +150,53 @@ class _TasksScreenState extends State<TasksScreen> {
       });
     }
 
-    return result.toList();
+    final sortedTasks = result.toList();
+
+    switch (_selectedSort) {
+      case TaskSort.newest:
+        sortedTasks.sort((a, b) {
+          final aDate = a.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate = b.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+
+          return bDate.compareTo(aDate);
+        });
+        break;
+
+      case TaskSort.oldest:
+        sortedTasks.sort((a, b) {
+          final aDate = a.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate = b.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+
+          return aDate.compareTo(bDate);
+        });
+        break;
+
+      case TaskSort.highPriority:
+        sortedTasks.sort((a, b) {
+          return _priorityWeight(
+            b.priority,
+          ).compareTo(
+            _priorityWeight(a.priority),
+          );
+        });
+        break;
+
+      case TaskSort.lowPriority:
+        sortedTasks.sort((a, b) {
+          return _priorityWeight(
+            a.priority,
+          ).compareTo(
+            _priorityWeight(b.priority),
+          );
+        });
+        break;
+    }
+
+    return sortedTasks;
   }
 
   Future<void> _toggleTask(String taskId) async {
@@ -268,6 +333,38 @@ class _TasksScreenState extends State<TasksScreen> {
       width: 20,
       height: 20,
     );
+  }
+
+  String _sortLabel(TaskSort sort) {
+    switch (sort) {
+      case TaskSort.newest:
+        return 'Новые сначала';
+
+      case TaskSort.oldest:
+        return 'Старые сначала';
+
+      case TaskSort.highPriority:
+        return 'Высокий приоритет';
+
+      case TaskSort.lowPriority:
+        return 'Низкий приоритет';
+    }
+  }
+
+  IconData _sortIcon(TaskSort sort) {
+    switch (sort) {
+      case TaskSort.newest:
+        return Icons.schedule_rounded;
+
+      case TaskSort.oldest:
+        return Icons.history_rounded;
+
+      case TaskSort.highPriority:
+        return Icons.arrow_upward_rounded;
+
+      case TaskSort.lowPriority:
+        return Icons.arrow_downward_rounded;
+    }
   }
 
   Widget _buildProgressCard(
@@ -503,11 +600,58 @@ class _TasksScreenState extends State<TasksScreen> {
 
               const SizedBox(height: 18),
 
-              Text(
-                'Мои задачи',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Мои задачи',
+                      style:
+                          Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                     ),
+                  ),
+
+                  PopupMenuButton<TaskSort>(
+                    tooltip: 'Сортировка',
+                    icon: const Icon(
+                      Icons.sort_rounded,
+                    ),
+                    onSelected: (sort) {
+                      setState(() {
+                        _selectedSort = sort;
+                      });
+                    },
+                    itemBuilder: (context) {
+                      return TaskSort.values.map((sort) {
+                        final isSelected =
+                            _selectedSort == sort;
+
+                        return PopupMenuItem<TaskSort>(
+                          value: sort,
+                          child: Row(
+                            children: [
+                              Icon(
+                                _sortIcon(sort),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _sortLabel(sort),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_rounded,
+                                  size: 20,
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ],
               ),
 
               const SizedBox(height: 14),
